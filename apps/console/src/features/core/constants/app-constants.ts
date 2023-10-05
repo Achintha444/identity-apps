@@ -434,9 +434,7 @@ export class AppConstants {
     /**
      * Route ids that are enabled in only for an organizations (Not allowed in root organization).
      */
-    public static readonly ORGANIZATION_ONLY_ROUTES: string[] = [
-        "roles"
-    ]
+    public static readonly ORGANIZATION_ONLY_ROUTES: string[] = []
 
     /**
      * Route ids that are enabled in only for super admins.

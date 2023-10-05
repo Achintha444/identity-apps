@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+ * Copyright (c) 2020, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -23,6 +23,7 @@ import { HttpMethods, RoleListInterface } from "@wso2is/core/models";
 import { AxiosError, AxiosResponse } from "axios";
 import { store } from "../../core";
 import { CreateRoleInterface, PatchRoleDataInterface, SearchRoleInterface } from "../models";
+import useRequest, { RequestConfigInterface, RequestErrorInterface, RequestResultInterface } from "../../core/hooks/use-request";
 
 /**
  * Initialize an axios Http client.
@@ -291,4 +292,35 @@ export const getRolesList = (domain: string): Promise<RoleListInterface | any> =
                 error.response,
                 error.config);
         });
+};
+
+/**
+ * Get the authorized APIs of the application with authorized permissions.
+ *
+ * @param appId - Application ID.
+ * 
+ * @returns A promise containing the response.
+ */
+export const useAuthorizedAPIList = <Data = any, 
+    Error = RequestErrorInterface> (
+        appId: string
+    ): RequestResultInterface<Data, Error> => {
+    const requestConfig: RequestConfigInterface = {
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json"
+        },
+        method: HttpMethods.GET,
+        url: `${store.getState().config.endpoints.applications}/${ appId }/authorized-apis`
+    };
+
+    const { data, error, isValidating, mutate } = useRequest<Data, Error>(appId ? requestConfig : null);
+
+    return {
+        data,
+        error: error,
+        isLoading: !error && !data,
+        isValidating,
+        mutate: mutate
+    };
 };

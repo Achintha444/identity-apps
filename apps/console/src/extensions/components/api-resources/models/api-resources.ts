@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+ * Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -62,11 +62,15 @@ export interface APIResourceInterface {
     /**
      * Display name of the API resource
      */
-    displayName: string;
+    displayName?: string;
     /**
      * Identifier of the API resource [Usually this is an API endpoint]
      */
     identifier: string;
+    /**
+     * Name of the API resource
+     */
+    name?: string;
     /**
      * Required authorization
      */
@@ -78,7 +82,7 @@ export interface APIResourceInterface {
     /**
      * List of permissions associate with the API resource
      */
-    permissions: APIResourcePermissionInterface[],
+    permissions?: APIResourcePermissionInterface[],
     /**
      * List of applications associate with the API resource
      */
@@ -265,4 +269,14 @@ export interface PermissionMappingInterface {
      * Update the permissions map
      */
     updatePermissions: (permission: APIResourcePermissionInterface, action : "set" | "delete") => void
+}
+
+/**
+ * API resources endpoint interface.
+ */
+export interface APIResourcesEndpointInterface {
+    /**
+     * API resources endpoint
+     */
+    apiResources: string;
 }

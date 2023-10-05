@@ -2,7 +2,7 @@
  * Copyright (c) 2020, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
- * Version 2.0 (the 'License'); you may not use this file except
+ * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -10,7 +10,7 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
@@ -30,10 +30,7 @@ export class RoleManagementUtils {
     /**
      * Private constructor to avoid object instantiation from outside
      * the class.
-     *
-     * @hideconstructor
      */
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     private constructor() {
     }
 
@@ -60,10 +57,10 @@ export class RoleManagementUtils {
     /**
      * Retrieve all permissions from backend.
      *
-     * @param {string[]} permissionsToSkip - Array of permissions to filter out.
-     * @return {Promise<TreeNode[]>}
+     * @param permissionsToSkip - Array of permissions to filter out.
+     * @return `Promise<TreeNode[]>`
      */
-    public static getAllPermissions = (permissionsToSkip?: string[], tenantDomain?: string): Promise<TreeNode[]> => {
+    public static getAllPermissions = (permissionsToSkip?: string[]): Promise<TreeNode[]> => {
         return getPermissionList().then((response) => {
             if (response.status === 200 && response.data && response.data instanceof Array) {
 

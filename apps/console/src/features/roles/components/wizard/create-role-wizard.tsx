@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+ * Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import { AlertLevels, TestableComponentInterface } from "@wso2is/core/models";
+import { AlertLevels, IdentifiableComponentInterface } from "@wso2is/core/models";
 import { addAlert } from "@wso2is/core/store";
 import { useTrigger } from "@wso2is/forms";
 import { Heading, LinkButton, PrimaryButton, Steps } from "@wso2is/react-components";
@@ -25,48 +25,25 @@ import React, { FunctionComponent, ReactElement, useEffect, useState } from "rea
 import { useTranslation } from "react-i18next";
 import { useDispatch } from "react-redux";
 import { Dispatch } from "redux";
-import { Button, Grid, Icon, Modal } from "semantic-ui-react";
-import { AssignGroupsUsers } from "./assign-groups-users";
+import { Grid, Icon, Modal } from "semantic-ui-react";
 import { RoleBasics } from "./role-basics";
-import { PermissionList } from "./role-permission";
-import { CreateRoleSummary } from "./role-sumary";
 import { AppConstants } from "../../../core/constants";
 import { history } from "../../../core/helpers";
-import { getGroupList } from "../../../groups/api";
-import { CreateGroupMemberInterface, GroupsInterface } from "../../../groups/models";
-import { UserBasicInterface } from "../../../users/models/user";
 import { createRole } from "../../api";
 import { getRolesWizardStepIcons } from "../../configs";
-import { CreateRoleInterface, CreateRoleMemberInterface, TreeNode } from "../../models";
+import { CreateRoleFormData, CreateRoleInterface, TreeNode } from "../../models";
+import { RolePermissions } from "./role-permission/role-permissions";
+import { WizardStateInterface, WizardStepsFormTypes } from "../../models/roles";
 
 /**
  * Interface which captures create role props.
  */
-interface CreateRoleProps extends TestableComponentInterface {
+interface CreateRoleProps extends IdentifiableComponentInterface {
     closeWizard: () => void;
     updateList: () => void;
     onCreateRoleRequested?: (role: CreateRoleInterface) => void;
     isAddGroup: boolean;
     initStep?: number;
-}
-
-/**
- * Enum for wizard steps form types.
- * @readonly
- */
-enum WizardStepsFormTypes {
-    BASIC_DETAILS = "BasicDetails",
-    PERM_LIST = "PermissionList",
-    USER_LIST = "UserList",
-    GROUP_LIST = "GroupList",
-    SUMMARY = "summary"
-}
-
-/**
- * Interface to capture current wizard state
- */
-interface WizardStateInterface {
-    [ key: string ]: any;
 }
 
 /**
@@ -82,30 +59,24 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
         updateList,
         isAddGroup,
         onCreateRoleRequested,
-        [ "data-testid" ]: testId
+        [ "data-componentid" ]: componentId
     } = props;
 
     const { t } = useTranslation();
     const dispatch: Dispatch = useDispatch();
 
+    // External trigger to submit the basic step. 
+    let submitRoleBasic: () => void;
+
     const [ currentStep, setCurrentWizardStep ] = useState<number>(initStep);
     const [ partiallyCompletedStep, setPartiallyCompletedStep ] = useState<number>(undefined);
     const [ wizardState, setWizardState ] = useState<WizardStateInterface>(undefined);
-    const [ selectedUserStore, setSelectedUserStrore ] = useState<string>("");
-
-    const [ submitGeneralSettings, setSubmitGeneralSettings ] = useTrigger();
-    const [ submitPermissionList, setSubmitPermissionList ] = useTrigger();
-    const [ finishSubmit, setFinishSubmit ] = useTrigger();
-
-    const [ groupList, setGroupList ] = useState<GroupsInterface[]>([]);
-    const [ tempGroupList, setTempGroupList ] = useState<GroupsInterface[]>([]);
-    const [ initialGroupList, setInitialGroupList ] = useState<GroupsInterface[]>([]);
-    const [ initialTempGroupList, setInitialTempGroupList ] = useState<GroupsInterface[]>([]);
-
-    const [ tempUsersList, setTempUsersList ] = useState<UserBasicInterface[]>([]);
     const [ isEnded, setEnded ] = useState<boolean>(false);
     const [ isSubmitting, setIsSubmitting ] = useState<boolean>(false);
+    const [ isPreviousDisabled, setIsPreviousDisabled ] = useState<boolean>(false);
 
+    const [ submitPermissionList, setSubmitPermissionList ] = useTrigger();
+    const [ finishSubmit, setFinishSubmit ] = useTrigger();
 
     /**
      * Sets the current wizard step to the previous on every `partiallyCompletedStep`
@@ -121,149 +92,99 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
     }, [ partiallyCompletedStep ]);
 
     useEffect(() => {
-        if (groupList.length < 1) {
-            getGroupList(null)
-                .then((response: AxiosResponse) => {
-                    const groups: GroupsInterface[] = response.data.Resources.filter(
-                        (group: GroupsInterface) => group.displayName.split("/").length === 1);
-
-                    setGroupList(groups);
-                });
-        }
-    }, []);
-
-    useEffect(() => {
         if(!isEnded) {
             return;
         }
 
         if (wizardState && wizardState[ WizardStepsFormTypes.BASIC_DETAILS ]) {
-            addRole(wizardState[ WizardStepsFormTypes.BASIC_DETAILS ]);
+            //addRole(wizardState[ WizardStepsFormTypes.BASIC_DETAILS ]);
         }
     }, [ wizardState && wizardState[ WizardStepsFormTypes.BASIC_DETAILS ] ]);
 
-    /**
-     * Method to handle create role action when create role wizard finish action is triggered.
-     *
-     * @param basicData - basic data required to create role.
-     */
-    const addRole = (basicData: WizardStateInterface): void => {
+    // /**
+    //  * Method to handle create role action when create role wizard finish action is triggered.
+    //  *
+    //  * @param basicData - basic data required to create role.
+    //  */
+    // const addRole = (basicData: CreateRoleFormData): void => {
+    //     const permissions: string[] = [];
 
-        const users: CreateRoleMemberInterface[] = [];
-        const groups: CreateGroupMemberInterface[] = [];
-        const permissions: string[] = [];
+    //     if (basicData?.PermissionList?.length > 0) {
+    //         basicData?.PermissionList?.forEach((permission: TreeNode) => {
+    //             permissions?.push(permission?.key.toString());
+    //         });
+    //     }
 
-        if (basicData?.UserList?.length > 0) {
-            //TODO: [Fix Type] Type of the `UserList` needs to be defined in `WizardStateInterface`.
-            basicData?.UserList?.forEach((user: any) => {
-                users?.push({
-                    display: user?.userName,
-                    value: user?.id
-                });
-            });
-        }
+    //     const roleData: CreateRoleInterface = {
+    //         "displayName": basicData?.BasicDetails ? basicData?.BasicDetails?.roleName : basicData?.roleName,
+    //         "permissions": permissions,
+    //         "schemas": [
+    //             "urn:ietf:params:scim:schemas:extension:2.0:Role"
+    //         ]
+    //     };
 
-        if (basicData?.GroupList?.length > 0) {
-            //TODO: [Fix Type] Type of the `GroupList` needs to be defined in `WizardStateInterface`.
-            basicData?.GroupList?.forEach((group: any) => {
-                groups?.push({
-                    display: group.displayName,
-                    value: group.id
-                });
-            });
-        }
+    //     setIsSubmitting(true);
 
-        if (basicData?.PermissionList?.length > 0) {
-            basicData?.PermissionList?.forEach((permission: TreeNode) => {
-                permissions?.push(permission?.key.toString());
-            });
-        }
+    //     if (onCreateRoleRequested) {
+    //         onCreateRoleRequested(roleData);
+    //     } else {
+    //         // Create Role API Call.
+    //         createRole(roleData).then((response: AxiosResponse) => {
+    //             if (response.status === 201) {
+    //                 dispatch(
+    //                     addAlert({
+    //                         description: t("console:manage.features.roles.notifications.createRole." +
+    //                             "success.description"),
+    //                         level: AlertLevels.SUCCESS,
+    //                         message: t("console:manage.features.roles.notifications.createRole.success.message")
+    //                     })
+    //                 );
 
-        const roleData: CreateRoleInterface = {
-            "displayName": basicData?.BasicDetails ? basicData?.BasicDetails?.roleName : basicData?.roleName,
-            "groups": groups,
-            "permissions": permissions,
-            "schemas": [
-                "urn:ietf:params:scim:schemas:extension:2.0:Role"
-            ],
-            "users": users
-        };
+    //                 closeWizard();
+    //                 history.push(AppConstants.getPaths().get("ROLE_EDIT").replace(":id", response.data.id));
+    //             }
 
-        setIsSubmitting(true);
-
-        if (onCreateRoleRequested) {
-            onCreateRoleRequested(roleData);
-        } else {
-            // Create Role API Call.
-            createRole(roleData).then((response: AxiosResponse) => {
-                if (response.status === 201) {
-                    dispatch(
-                        addAlert({
-                            description: t("console:manage.features.roles.notifications.createRole." +
-                                "success.description"),
-                            level: AlertLevels.SUCCESS,
-                            message: t("console:manage.features.roles.notifications.createRole.success.message")
-                        })
-                    );
-
-                    closeWizard();
-                    history.push(AppConstants.getPaths().get("ROLE_EDIT").replace(":id", response.data.id));
-                }
-
-            }).catch((error: AxiosError) => {
-                if (!error.response || error.response.status === 401) {
-                    closeWizard();
-                    dispatch(
-                        addAlert({
-                            description: t("console:manage.features.roles.notifications.createRole.error.description"),
-                            level: AlertLevels.ERROR,
-                            message: t("console:manage.features.roles.notifications.createRole.error.message")
-                        })
-                    );
-                } else if (error.response && error.response.data.detail) {
-                    closeWizard();
-                    dispatch(
-                        addAlert({
-                            description: t("console:manage.features.roles.notifications.createRole.error.description",
-                                { description: error.response.data.detail }),
-                            level: AlertLevels.ERROR,
-                            message: t("console:manage.features.roles.notifications.createRole.error.message")
-                        })
-                    );
-                } else {
-                    closeWizard();
-                    dispatch(addAlert({
-                        description: t("console:manage.features.roles.notifications.createRole." +
-                            "genericError.description"),
-                        level: AlertLevels.ERROR,
-                        message: t("console:manage.features.roles.notifications.createRole.genericError.message")
-                    }));
-                }
-            }).finally(() => {
-                setIsSubmitting(false);
-            });
-        }
-    };
+    //         }).catch((error: AxiosError) => {
+    //             if (!error.response || error.response.status === 401) {
+    //                 closeWizard();
+    //                 dispatch(
+    //                     addAlert({
+    //                         description: t("console:manage.features.roles.notifications.createRole.error.description"),
+    //                         level: AlertLevels.ERROR,
+    //                         message: t("console:manage.features.roles.notifications.createRole.error.message")
+    //                     })
+    //                 );
+    //             } else if (error.response && error.response.data.detail) {
+    //                 closeWizard();
+    //                 dispatch(
+    //                     addAlert({
+    //                         description: t("console:manage.features.roles.notifications.createRole.error.description",
+    //                             { description: error.response.data.detail }),
+    //                         level: AlertLevels.ERROR,
+    //                         message: t("console:manage.features.roles.notifications.createRole.error.message")
+    //                     })
+    //                 );
+    //             } else {
+    //                 closeWizard();
+    //                 dispatch(addAlert({
+    //                     description: t("console:manage.features.roles.notifications.createRole." +
+    //                         "genericError.description"),
+    //                     level: AlertLevels.ERROR,
+    //                     message: t("console:manage.features.roles.notifications.createRole.genericError.message")
+    //                 }));
+    //             }
+    //         }).finally(() => {
+    //             setIsSubmitting(false);
+    //         });
+    //     }
+    // };
 
     /**
      * Method to handle the create role wizard finish action.
      *
      */
     const handleRoleWizardFinish = () => {
-        addRole(wizardState);
-    };
-
-    /**
-     * Generates a summary of the wizard.
-     *
-     * @returns Summary of the wizard.
-     */
-    const generateWizardSummary = () => {
-        if (!wizardState) {
-            return;
-        }
-
-        return wizardState;
+        //addRole(wizardState);
     };
 
     /**
@@ -272,37 +193,10 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
      * @param values - Forms values to be stored in state.
      * @param formType - Type of the form.
      */
-    const handleWizardSubmit = (values: any, formType: WizardStepsFormTypes) => {
-        if (WizardStepsFormTypes.BASIC_DETAILS === formType) {
-            setSelectedUserStrore(values.domain);
-        }
+    const handleWizardSubmit = (values: CreateRoleFormData | TreeNode[], formType: WizardStepsFormTypes) => {
         setCurrentWizardStep(currentStep + 1);
+
         setWizardState({ ...wizardState, [ formType ]: values });
-    };
-
-    const handleGroupUserSubmit = (value: {
-            [ WizardStepsFormTypes.USER_LIST ]: any;
-            [ WizardStepsFormTypes.GROUP_LIST ]: any;
-        }
-    ): void => {
-        setCurrentWizardStep(currentStep + 1);
-        setWizardState({ ...wizardState, ...value });
-    };
-
-    const handleGroupListChange = (groupList: GroupsInterface[]) => {
-        setGroupList(groupList);
-    };
-
-    const handleInitialGroupListChange = (groupList: GroupsInterface[]) => {
-        setInitialGroupList(groupList);
-    };
-
-    const handleAddedGroupListChange = (newGroupList: GroupsInterface[]) => {
-        setTempGroupList(newGroupList);
-    };
-
-    const handleAddedGroupInitialListChange = (newGroupList: GroupsInterface[]) => {
-        setInitialTempGroupList(newGroupList);
     };
 
     // Create role wizard steps
@@ -314,98 +208,53 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
         content: JSX.Element;
         icon: JSX.Element;
         title: string;
-    })[] = [ {
-        content: (
-            <RoleBasics
-                data-testid="add-role-form"
-                isAddGroup={ isAddGroup }
-                triggerSubmit={ submitGeneralSettings }
-                initialValues={ wizardState && wizardState[ WizardStepsFormTypes.BASIC_DETAILS ] }
-                onSubmit={ (values: any) => handleWizardSubmit(values, WizardStepsFormTypes.BASIC_DETAILS) }
-            />
-        ),
-        icon: getRolesWizardStepIcons().general,
-        title: t("console:manage.features.roles.addRoleWizard.wizardSteps.0")
-    },{
-        content: (
-            <PermissionList
-                data-testid="new-role-permissions"
-                isEdit={ false }
-                triggerSubmit={ submitPermissionList }
-                initialValues={ wizardState && wizardState[ WizardStepsFormTypes.PERM_LIST ] }
-                onSubmit={ (values: TreeNode[]) => handleWizardSubmit(values, WizardStepsFormTypes.PERM_LIST) }
-                isSubmitting={ isSubmitting }
-            />
-        ),
-        icon: <Icon name="key" inverted size="large" />,
-        title: t("console:manage.features.roles.addRoleWizard.wizardSteps.1")
-    },{
-        content: (
-            <AssignGroupsUsers
-                data-testid="role-mgt-assign-users-and-groups"
-                initialUsersList={ tempUsersList }
-                initialGroupList={
-                    {
-                        groupList: groupList,
-                        initialGroupList: initialGroupList,
-                        initialTempGroupList: initialTempGroupList,
-                        tempGroupList: tempGroupList
+    })[] = [ 
+        {
+            content: (
+                <RoleBasics
+                    triggerSubmission={ (submitFunctionCb: () => void) => {
+                        submitRoleBasic = submitFunctionCb;
+                    } }
+                    setIsPreviousDisabled={ setIsPreviousDisabled }
+                    initialValues={ wizardState && wizardState[ WizardStepsFormTypes.BASIC_DETAILS ] }
+                    onSubmit={ (values: CreateRoleFormData) => 
+                        handleWizardSubmit(values, WizardStepsFormTypes.BASIC_DETAILS) }
+                />
+            ),
+            icon: getRolesWizardStepIcons().general,
+            title: t("console:manage.features.roles.addRoleWizard.wizardSteps.0")
+        },
+        {
+            content: (
+                <RolePermissions
+                    initialValues={ wizardState && wizardState[ WizardStepsFormTypes.PERM_LIST ] }
+                    roleAudience = { wizardState && wizardState[ WizardStepsFormTypes.BASIC_DETAILS ]?.roleAudience }
+                    assignedApplication = { 
+                        wizardState && wizardState[ WizardStepsFormTypes.BASIC_DETAILS ]?.assignedApplication
                     }
-                }
-                onRoleUpdate={ updateList }
-                selectedUserStore={ selectedUserStore }
-                handleAddedGroupInitialListChange={
-                    (groups: GroupsInterface[]) => handleAddedGroupInitialListChange(groups)
-                }
-                handleAddedGroupListChange={ (groups: GroupsInterface[]) => handleAddedGroupListChange(groups) }
-                handleGroupListChange={ (groups: GroupsInterface[]) => handleGroupListChange(groups) }
-                handleInitialGroupListChange={ (groups: GroupsInterface[]) => handleInitialGroupListChange(groups) }
-                handleTempUsersListChange={ (list: UserBasicInterface[]) => {
-                    setTempUsersList(list);
-                } }
-            />
-        ),
-        icon: getRolesWizardStepIcons().assignUser,
-        title: t("console:manage.features.roles.addRoleWizard.wizardSteps.4")
-    },{
-        content: (
-            <CreateRoleSummary
-                data-testid="add-role-summary"
-                isAddGroup={ isAddGroup }
-                triggerSubmit={ finishSubmit }
-                onSubmit={ handleRoleWizardFinish }
-                summary={ generateWizardSummary() }
-            />
-        ),
-        icon: getRolesWizardStepIcons().summary,
-        title: t("console:manage.features.roles.addRoleWizard.wizardSteps.3")
-    } ];
+                    onSubmit={ (values: TreeNode[]) => handleWizardSubmit(values, WizardStepsFormTypes.PERM_LIST) }
+                />
+            ),
+            icon: <Icon name="key" inverted size="large" />,
+            title: t("console:manage.features.roles.addRoleWizard.wizardSteps.1")
+        }
+    ];
 
     /**
      * Function to change the current wizard step to next.
      */
     const changeStepToNext = (): void => {
+
         switch(currentStep) {
             case 0:
-                setSubmitGeneralSettings();
+                submitRoleBasic();
 
                 break;
             case 1:
                 setSubmitPermissionList();
-
-                break;
-            case 2:
-                handleGroupUserSubmit({
-                    [ WizardStepsFormTypes.USER_LIST ]: tempUsersList,
-                    [ WizardStepsFormTypes?.GROUP_LIST ]: tempGroupList
-                });
-
-                break;
-            case 3:
                 setFinishSubmit();
 
                 break;
-
         }
     };
 
@@ -415,7 +264,6 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
 
     const handleFinishFlow = () => {
         setEnded(true);
-        setSubmitGeneralSettings();
     };
 
     return (
@@ -427,7 +275,7 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
             onClose={ closeWizard }
             closeOnDimmerClick={ false }
             closeOnEscape= { false }
-            data-testid={ testId }
+            data-componentId={ componentId }
         >
             <Modal.Header className="wizard-header">
                 { t("console:manage.features.roles.addRoleWizard.heading", { type: "Role" }) }
@@ -476,7 +324,7 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
                             <LinkButton
                                 floated="left"
                                 onClick={ () => closeWizard() }
-                                data-testid={ `${ testId }-cancel-button` }
+                                data-componentId={ `${ componentId }-cancel-button` }
                             >
                                 { t("common:cancel") }
                             </LinkButton>
@@ -486,22 +334,12 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
                                 <PrimaryButton
                                     floated="right"
                                     onClick={ changeStepToNext }
-                                    data-testid={ `${ testId }-next-button` }
+                                    data-componentId={ `${ componentId }-next-button` }
+                                    disabled={ isPreviousDisabled }
                                 >
                                     { t("console:manage.features.roles.addRoleWizard.buttons.next") }
-                                    <Icon name="arrow right" data-testid={ `${ testId }-next-button-icon` }/>
+                                    <Icon name="arrow right" data-componentId={ `${ componentId }-next-button-icon` }/>
                                 </PrimaryButton>
-                            ) }
-                            { currentStep === 0 && (
-                                <Button
-                                    basic
-                                    color="orange"
-                                    floated="right"
-                                    onClick={ handleFinishFlow }
-                                    data-testid={ `${ testId }-initial-finish-button` }
-                                >
-                                    { t("console:manage.features.roles.addRoleWizard.buttons.finish") }
-                                </Button>
                             ) }
                             { currentStep === WIZARD_STEPS.length - 1 && (
                                 <PrimaryButton
@@ -509,7 +347,7 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
                                     onClick={ changeStepToNext }
                                     loading={ isSubmitting }
                                     disabled={ isSubmitting }
-                                    data-testid={ `${ testId }-finish-button` }
+                                    data-componentId={ `${ componentId }-finish-button` }
                                 >
                                     { t("console:manage.features.roles.addRoleWizard.buttons.finish") }
                                 </PrimaryButton>
@@ -518,9 +356,12 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
                                 <LinkButton
                                     floated="right"
                                     onClick={ navigateToPrevious }
-                                    data-testid={ `${ testId }-previous-button` }
+                                    data-componentId={ `${ componentId }-previous-button` }
                                 >
-                                    <Icon name="arrow left" data-testid={ `${ testId }-previous-button-icon` }/>
+                                    <Icon 
+                                        name="arrow left" 
+                                        data-componentId={ `${ componentId }-previous-button-icon` }
+                                    />
                                     { t("console:manage.features.roles.addRoleWizard.buttons.previous") }
                                 </LinkButton>
                             ) }
@@ -538,5 +379,6 @@ export const CreateRoleWizard: FunctionComponent<CreateRoleProps> = (props: Crea
  *        beginning of the wizard.
  */
 CreateRoleWizard.defaultProps = {
+    "data-componentid": "role-mgt-create-role-wizard",
     initStep: 0
 };

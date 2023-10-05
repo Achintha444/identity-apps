@@ -89,7 +89,7 @@ export const PermissionList: FunctionComponent<PermissionListProp> = (props: Per
     useEffect(() => {
         const checkedNodes: TreeNode[] = [];
 
-        RoleManagementUtils.getAllPermissions(permissionsToHide, tenantDomain)
+        RoleManagementUtils.getAllPermissions(permissionsToHide)
             .then((permissionTree: TreeNode[]) => {
                 disableSuperAdminTreeNode(isSuperAdmin, permissionTree);
                 setPermissions(permissionTree);

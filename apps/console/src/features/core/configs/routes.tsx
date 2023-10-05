@@ -252,7 +252,7 @@ export const getAppViewRoutes = (useExtendedRoutes: boolean = false): RouteInter
                         component: lazy(() => import("../../roles/pages/role")),
                         exact: true,
                         icon: {
-                            icon: getSidePanelIcons().applicationRoles
+                            icon: getSidePanelIcons().roles
                         },
                         id: "roles",
                         name: "console:manage.features.sidePanel.roles",

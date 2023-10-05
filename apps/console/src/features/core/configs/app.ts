@@ -16,9 +16,11 @@
  * under the License.
  */
 
+
 import { DocumentationConstants } from "@wso2is/core/constants";
 import { DocumentationProviders, DocumentationStructureFileTypes } from "@wso2is/core/models";
 import { I18nModuleInitOptions, I18nModuleOptionsInterface, MetaI18N, generateBackendPaths } from "@wso2is/i18n";
+import { getAPIResourceEndpoints } from "../../../extensions/components/api-resources/configs/endpoints";
 import { getFeatureGateResourceEndpoints } from "../../../extensions/components/feature-gate/configs";
 import { getExtendedFeatureResourceEndpoints } from "../../../extensions/configs/endpoints";
 import { getApplicationsResourceEndpoints } from "../../applications/configs/endpoints";
@@ -230,6 +232,7 @@ export class Config {
             ...getOrganizationsResourceEndpoints(this.resolveServerHost(true), this.getDeploymentConfig().serverHost),
             ...getFeatureGateResourceEndpoints(this.resolveServerHostforFG(false)),
             ...getInsightsResourceEndpoints(this.getDeploymentConfig()?.serverHost),
+            ...getAPIResourceEndpoints(this.getDeploymentConfig()?.serverHost),
             CORSOrigins: `${ this.getDeploymentConfig()?.serverHost }/api/server/v1/cors/origins`,
             // TODO: Remove this endpoint and use ID token to get the details
             me: `${ this.getDeploymentConfig()?.serverHost }/scim2/Me`,

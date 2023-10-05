@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+ * Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -45,6 +45,8 @@ export interface CreateRoleMemberInterface {
 export interface CreateRoleFormData {
     domain?: string;
     roleName: string;
+    roleAudience?: string;
+    assignedApplication? : string;
 }
 
 /**
@@ -77,4 +79,28 @@ export interface OperationValueInterface {
         { [x: string]: { [x: string]: string | boolean | string[]; }; } |
         { formatted: string | string[]; type: string; }[] |
         { type: string; value: string | boolean | string[]; }[]
+}
+
+/**
+ * Enum of the role audiences.
+ */
+export enum RoleAudiences {
+    ORG = "organization",
+    APPLICATION = "application",
+}
+
+/**
+ * Enum for wizard steps form types.
+ * @readonly
+ */
+export enum WizardStepsFormTypes {
+    BASIC_DETAILS = "BasicDetails",
+    PERM_LIST = "PermissionList"
+}
+
+/**
+ * Interface to capture current wizard state
+ */
+export interface WizardStateInterface {
+    BasicDetails: CreateRoleFormData;
 }
